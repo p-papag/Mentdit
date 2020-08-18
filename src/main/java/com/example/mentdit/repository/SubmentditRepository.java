@@ -1,12 +1,12 @@
 package com.example.mentdit.repository;
 
-import com.example.mentdit.model.User;
+import com.example.mentdit.model.Submentdit;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface IUserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
+public interface SubmentditRepository extends JpaRepository<Submentdit, Long> {
+    Optional<Submentdit> findByName(String submentditName);
 }

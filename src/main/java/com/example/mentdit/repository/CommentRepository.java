@@ -1,15 +1,16 @@
 package com.example.mentdit.repository;
 
+import com.example.mentdit.model.Comment;
 import com.example.mentdit.model.Post;
 import com.example.mentdit.model.User;
-import com.example.mentdit.model.Vote;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
+import java.util.List;
 
 @Repository
-public interface IVoteRepository extends JpaRepository<Vote, Long> {
-    Optional<Vote> findTopByPostAndUserOrderByVoteIdDesc(Post post, User currentUser);
+public interface CommentRepository extends JpaRepository<Comment, Long> {
+    List<Comment> findByPost(Post post);
 
+    List<Comment> findAllByUser(User user);
 }
