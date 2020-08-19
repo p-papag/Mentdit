@@ -1,5 +1,6 @@
 package com.example.mentdit.service;
 
+import com.example.mentdit.dto.LoginRequest;
 import com.example.mentdit.dto.RegisterRequest;
 import com.example.mentdit.exception.MentditException;
 import com.example.mentdit.model.NotificationEmail;
@@ -8,11 +9,14 @@ import com.example.mentdit.model.VerificationToken;
 import com.example.mentdit.repository.UserRepository;
 import com.example.mentdit.repository.VerificationTokenRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import sun.text.normalizer.ICUBinary;
 
 import javax.transaction.Transactional;
-import javax.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,7 +29,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final VerificationTokenRepository verificationTokenRepository;
-    private  MailService mailService;
+    private final MailService mailService;
+    private final AuthenticationManager authenticationManager;
 
 
     public void signup(RegisterRequest registerRequest) {
@@ -70,5 +75,10 @@ public class AuthService {
         User user = userRepository.findByUsername(username).orElseThrow(()-> new MentditException("User with name " + username + " not found"));
         user.setEnabled(true);
         userRepository.save(user);
+    }
+
+    public void login(LoginRequest loginRequest) {
+       Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),
+                loginRequest.getPassword()));
     }
 }
