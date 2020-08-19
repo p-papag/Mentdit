@@ -1,6 +1,7 @@
 package com.example.mentdit.service;
 
 import com.example.mentdit.dto.RegisterRequest;
+import com.example.mentdit.exception.MentditException;
 import com.example.mentdit.model.NotificationEmail;
 import com.example.mentdit.model.User;
 import com.example.mentdit.model.VerificationToken;
@@ -11,7 +12,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import javax.validation.constraints.NotBlank;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -54,5 +57,18 @@ public class AuthService {
 
         verificationTokenRepository.save(verificationToken);
         return token;
+    }
+
+    public void verifyAccount(String token) {
+        Optional<VerificationToken> verificationToken = verificationTokenRepository.findByToken(token);
+        verificationToken.orElseThrow(() -> new MentditException("Invalid Token"));
+        fetchUserAndEnable(verificationToken.get());
+    }
+
+    private void fetchUserAndEnable(VerificationToken verificationToken) {
+        String username = verificationToken.getUser().getUsername();
+        User user = userRepository.findByUsername(username).orElseThrow(()-> new MentditException("User with name " + username + " not found"));
+        user.setEnabled(true);
+        userRepository.save(user);
     }
 }
