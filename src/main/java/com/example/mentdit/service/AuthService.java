@@ -1,5 +1,6 @@
 package com.example.mentdit.service;
 
+import com.example.mentdit.dto.AuthenticationResponse;
 import com.example.mentdit.dto.LoginRequest;
 import com.example.mentdit.dto.RegisterRequest;
 import com.example.mentdit.exception.MentditException;
@@ -8,22 +9,26 @@ import com.example.mentdit.model.User;
 import com.example.mentdit.model.VerificationToken;
 import com.example.mentdit.repository.UserRepository;
 import com.example.mentdit.repository.VerificationTokenRepository;
+import com.example.mentdit.security.JwtProvider;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import sun.text.normalizer.ICUBinary;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.Transactional;
+
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @AllArgsConstructor
-@Transactional
+@Slf4j
 public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
@@ -31,6 +36,7 @@ public class AuthService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final MailService mailService;
     private final AuthenticationManager authenticationManager;
+    private final JwtProvider jwtProvider;
 
 
     public void signup(RegisterRequest registerRequest) {
@@ -53,6 +59,14 @@ public class AuthService {
                 ));
 
         }
+
+    @Transactional(readOnly = true)
+    public User getCurrentUser() {
+        org.springframework.security.core.userdetails.User principal = (org.springframework.security.core.userdetails.User) SecurityContextHolder.
+                getContext().getAuthentication().getPrincipal();
+        return userRepository.findByUsername(principal.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User name not found - " + principal.getUsername()));
+    }
 
         private String generateVerificationToken(User user) {
         String token = UUID.randomUUID().toString();
@@ -77,8 +91,18 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    public void login(LoginRequest loginRequest) {
+    public AuthenticationResponse login(LoginRequest loginRequest) {
        Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),
                 loginRequest.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(authenticate);
+        String token = jwtProvider.generateToken(authenticate);
+        return AuthenticationResponse.builder()
+                .authenticationToken(token)
+                .username(loginRequest.getUsername())
+                .build();
+    }
+
+    public String test() {
+        return jwtProvider.getPrivateKey().toString();
     }
 }
