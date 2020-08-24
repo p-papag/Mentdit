@@ -2,11 +2,15 @@ package com.example.mentdit.controller;
 
 import com.example.mentdit.dto.AuthenticationResponse;
 import com.example.mentdit.dto.LoginRequest;
+import com.example.mentdit.dto.RefreshTokenRequest;
 import com.example.mentdit.dto.RegisterRequest;
 import com.example.mentdit.service.AuthService;
+import com.example.mentdit.service.RefreshTokenService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
 
 import static org.springframework.http.HttpStatus.OK;
 
@@ -16,6 +20,7 @@ import static org.springframework.http.HttpStatus.OK;
 public class AuthController {
 
     private final AuthService authService;
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@RequestBody RegisterRequest registerRequest) {
@@ -35,12 +40,17 @@ public class AuthController {
         return authService.login(loginRequest);
     }
 
-
-    @GetMapping("/test")
-    public void test(){
-        authService.test();
-
+    @PostMapping("refresh/token")
+    public AuthenticationResponse refreshTokens(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+        return authService.refreshToken(refreshTokenRequest);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest){
+        refreshTokenService.deleteRefreshToken(refreshTokenRequest.getRefreshToken());
+        return ResponseEntity.status(OK).body("Refresh Token Deleted Successfully!!");
+    }
+
 
 
 }

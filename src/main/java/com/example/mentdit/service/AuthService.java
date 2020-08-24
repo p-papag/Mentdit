@@ -2,6 +2,7 @@ package com.example.mentdit.service;
 
 import com.example.mentdit.dto.AuthenticationResponse;
 import com.example.mentdit.dto.LoginRequest;
+import com.example.mentdit.dto.RefreshTokenRequest;
 import com.example.mentdit.dto.RegisterRequest;
 import com.example.mentdit.exception.MentditException;
 import com.example.mentdit.model.NotificationEmail;
@@ -12,6 +13,7 @@ import com.example.mentdit.repository.VerificationTokenRepository;
 import com.example.mentdit.security.JwtProvider;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import javax.validation.Valid;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +40,7 @@ public class AuthService {
     private final MailService mailService;
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
 
 
     public void signup(RegisterRequest registerRequest) {
@@ -98,11 +102,29 @@ public class AuthService {
         String token = jwtProvider.generateToken(authenticate);
         return AuthenticationResponse.builder()
                 .authenticationToken(token)
+                .refreshToken(refreshTokenService.generateRefreshToken().getToken())
+                .expiresAt(Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()))
                 .username(loginRequest.getUsername())
                 .build();
     }
 
     public String test() {
         return jwtProvider.getPrivateKey().toString();
+    }
+
+    public boolean isLoggedIn() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return !(authentication instanceof AnonymousAuthenticationToken) && authentication.isAuthenticated();
+    }
+
+    public AuthenticationResponse refreshToken(@Valid RefreshTokenRequest refreshTokenRequest) {
+        refreshTokenService.validateRefreshToken(refreshTokenRequest.getRefreshToken());
+        String token = jwtProvider.generateTokenWithUserName(refreshTokenRequest.getUsername());
+        return AuthenticationResponse.builder()
+                .authenticationToken(token)
+                .refreshToken(refreshTokenRequest.getRefreshToken())
+                .expiresAt(Instant.now().plusMillis(jwtProvider.getJwtExpirationInMillis()))
+                .username(refreshTokenRequest.getUsername())
+                .build();
     }
 }
